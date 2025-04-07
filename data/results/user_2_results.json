@@ -1,0 +1,22 @@
+[
+  {
+    "videoId": "video1",
+    "selectedSign": "CONSTRUCTION",
+    "timestamp": "2025-03-20T15:39:07.706Z"
+  },
+  {
+    "videoId": "video2",
+    "selectedSign": "CHENNAI",
+    "timestamp": "2025-03-20T15:39:11.014Z"
+  },
+  {
+    "videoId": "video7678",
+    "selectedSign": "Not Recognized",
+    "timestamp": "2025-04-05T08:55:07.171Z"
+  },
+  {
+    "videoId": "video7653",
+    "selectedSign": "CANADA",
+    "timestamp": "2025-04-05T08:55:11.008Z"
+  }
+]

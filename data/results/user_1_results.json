@@ -1,0 +1,22 @@
+[
+  {
+    "videoId": "video1",
+    "selectedSign": "Work",
+    "timestamp": "2025-03-19T10:16:17.972Z"
+  },
+  {
+    "videoId": "video3",
+    "selectedSign": "Come",
+    "timestamp": "2025-03-19T10:16:24.548Z"
+  },
+  {
+    "videoId": "video7694",
+    "selectedSign": "Not Recognized",
+    "timestamp": "2025-04-04T18:56:31.489Z"
+  },
+  {
+    "videoId": "video7692",
+    "selectedSign": "Not Recognized",
+    "timestamp": "2025-04-04T18:57:18.547Z"
+  }
+]
