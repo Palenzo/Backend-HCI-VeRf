@@ -184,49 +184,95 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
 
+// --- Optional: Seed Data Function (Run once if needed) ---
 async function seedDatabase() {
     try {
-        // Clear existing data (optional)
-        // await HandSign.deleteMany({});
-        // await Video.deleteMany({});
-        // await ValidationResult.deleteMany({}); // Be careful with this one
-
-        // Check if data already exists
+        // --- Seed HandSigns (Keep existing logic) ---
         const signCount = await HandSign.countDocuments();
         if (signCount === 0) {
             console.log("Seeding HandSigns...");
             const fs = require("fs");
-            const handSignsPath = path.join(
-                __dirname,
-                "data",
-                "handsigns.json"
-            );
-            const handSignsData = JSON.parse(
-                fs.readFileSync(handSignsPath, "utf8")
-            );
-            const handSignDocs = handSignsData.map((name) => ({ name }));
-            await HandSign.insertMany(handSignDocs);
-            console.log("HandSigns seeded.");
+            const path = require("path");
+            const handSignsPath = path.join(__dirname, "data", "handsigns.json");
+            if (fs.existsSync(handSignsPath)) {
+                const handSignsData = JSON.parse(fs.readFileSync(handSignsPath, "utf8"));
+                const handSignDocs = handSignsData.map((name) => ({ name }));
+                await HandSign.insertMany(handSignDocs);
+                console.log("HandSigns seeded.");
+            } else {
+                console.error(`ERROR: handsigns.json not found at ${handSignsPath}`);
+            }
         } else {
             console.log("HandSigns already exist, skipping seed.");
         }
 
-        const videoCount = await Video.countDocuments();
-        if (videoCount === 0) {
-            console.log("Seeding Videos...");
-            const fs = require("fs");
-            const videosPath = path.join(__dirname, "data", "videos.json");
-            const videosData = JSON.parse(fs.readFileSync(videosPath, "utf8"));
-            await Video.insertMany(videosData);
-            console.log("Videos seeded.");
-        } else {
-            console.log("Videos already exist, skipping seed.");
+        // --- Seed Videos (Efficient Upsert Logic) ---
+        console.log("Attempting to seed Videos...");
+        const fs = require("fs");
+        const path = require("path");
+        const videosPath = path.join(__dirname, "data", "videos.json");
+
+        if (!fs.existsSync(videosPath)) {
+            console.error(`ERROR: videos.json not found at ${videosPath}`);
+            return;
         }
+
+        let videosData;
+        try {
+            videosData = JSON.parse(fs.readFileSync(videosPath, "utf8"));
+            if (!Array.isArray(videosData)) {
+                console.error("ERROR: videos.json does not contain a valid JSON array.");
+                return;
+            }
+            console.log(`Found ${videosData.length} videos in videos.json`);
+        } catch (parseError) {
+            console.error("ERROR: Failed to parse videos.json:", parseError);
+            return;
+        }
+
+        // Check existing count before seeding
+        const existingCount = await Video.countDocuments();
+        console.log(`Currently ${existingCount} videos in database`);
+
+        // Process in batches for efficiency
+        const BATCH_SIZE = 1000;
+        let processedCount = 0;
+        let newCount = 0;
+
+        for (let i = 0; i < videosData.length; i += BATCH_SIZE) {
+            const batch = videosData.slice(i, i + BATCH_SIZE);
+            const bulkOps = batch.map(video => ({
+                updateOne: {
+                    filter: { id: video.path },
+                    update: { $set: { path: video.path, correctSign: video.correctSign } },
+                    upsert: true // Create if doesn't exist
+                }
+            }));
+
+            try {
+                const result = await Video.bulkWrite(bulkOps);
+                processedCount += batch.length;
+                newCount += result.upsertedCount;
+                
+                console.log(`Batch ${Math.ceil((i+1)/BATCH_SIZE)}/${Math.ceil(videosData.length/BATCH_SIZE)}: Processed ${batch.length} videos, ${result.upsertedCount} new`);
+            } catch (batchError) {
+                console.error(`Error in batch starting at index ${i}:`, batchError);
+            }
+        }
+
+        // Final count after seeding
+        const finalCount = await Video.countDocuments();
+        console.log(`Videos seeding completed:
+        - Total processed: ${processedCount}
+        - New videos added: ${newCount}
+        - Final collection size: ${finalCount}`);
+
     } catch (error) {
-        console.error("Error seeding database:", error);
+        console.error("Error during database seeding process:", error);
     }
 }
 
+// Call seed function once after connection (make sure this is uncommented for seeding)
 mongoose.connection.once("open", () => {
     seedDatabase();
 });
